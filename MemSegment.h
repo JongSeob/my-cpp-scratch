@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <cstdint>
 #include <string>
+#include <utility> // For std::pair
 
 // Union type definition
 union WordBytes {
@@ -42,6 +43,7 @@ public:
     bool SaveTo(const std::string& filename) const;
 
     void SetStartBytePosition(uint32_t segment_idx, uint32_t byte_idx);
+    void SetStartBytePosition(const std::pair<uint32_t, uint32_t>& position);
     uint8_t GetNextByte();
 };
 

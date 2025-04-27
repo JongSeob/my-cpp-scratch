@@ -1,6 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include <cstdint>  // For uint32_t type
+#include <utility>  // For std::pair
 #include "MemSegment.h" // MemSegment 클래스 헤더
 
 // Function to test MemSegment functionality
@@ -56,8 +57,14 @@ void RunMemSegTest() {
         }
 
         // Use SetStartBytePosition and GetNextByte
-        std::cout << "\nUsing SetStartBytePosition and GetNextByte:\n";
+        std::cout << "\nUsing SetStartBytePosition (pair version) and GetNextByte:\n";
+        // 1) Set start position using a pair
         seg1.SetStartBytePosition(2, 2); // Start at segment index 2, byte index 2
+        // 2.1) SetStartBytePosition with a pair variable
+        std::pair<uint32_t, uint32_t> start_position = std::make_pair(2, 2);
+        seg1.SetStartBytePosition(start_position); // Start at segment index 2, byte index 2
+        // 2.2) SetStartBytePosition with a make_pair
+        seg1.SetStartBytePosition(std::make_pair(2, 2)); // Start at segment index 2, byte index 2
         for (int i = 0; i < 4; ++i) {
             uint8_t byte = seg1.GetNextByte();
             std::cout << "Byte " << i << ": 0x" << std::hex << std::setw(2) << std::setfill('0') 

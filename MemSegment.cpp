@@ -2,6 +2,7 @@
 #include <vector>
 #include <iomanip>
 #include <string>
+#include <stdexcept> // For std::out_of_range
 #include "MemSegment.h" // MemSegment 클래스 헤더
 
 // WordBytes implementation
@@ -94,6 +95,11 @@ void MemSegment::SetStartBytePosition(uint32_t segment_idx, uint32_t byte_idx) {
     }
     segment_idx_ = segment_idx;
     byte_idx_ = byte_idx;
+}
+
+// SetStartBytePosition 오버로딩 구현
+void MemSegment::SetStartBytePosition(const std::pair<uint32_t, uint32_t>& position) {
+    SetStartBytePosition(position.first, position.second);
 }
 
 uint8_t MemSegment::GetNextByte() {
