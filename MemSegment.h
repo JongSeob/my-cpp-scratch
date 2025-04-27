@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <iomanip>
 #include <cstdint>  // For uint32_t type
@@ -102,6 +103,34 @@ public:
             std::cout << std::dec << std::endl;
         }
     }
+
+    // SaveTo 함수는 MemSegment의 모든 데이터를 텍스트 파일에 저장합니다.
+    // 각 word는 16진수 형식으로 한 줄에 하나씩 저장됩니다.
+    bool SaveTo(const std::string& filename) const {
+        // 출력 파일 열기
+        std::ofstream file(filename);
+        if (!file.is_open()) {
+            std::cerr << "Error: Unable to open file '" << filename << "' for writing." << std::endl;
+            return false;
+        }
+        
+        // 각 word를 16진수 형식으로 파일에 저장
+        for (size_t i = 0; i < length_; ++i) {
+            // 16진수 포맷으로 출력 (앞의 '0x' 제외)
+            file << std::hex << std::setw(8) << std::setfill('0') << data_[i].word << std::endl;
+        }
+        
+        // 파일이 정상적으로 저장되었는지 확인
+        if (file.bad()) {
+            std::cerr << "Error: Writing to file '" << filename << "' failed." << std::endl;
+            file.close();
+            return false;
+        }
+        
+        file.close();
+        return true;
+    }
+
 };
 
 // Class for storing and referencing multiple memory segments (renamed to MemoryStore)
@@ -183,57 +212,3 @@ public:
         segments_.clear();
     }
 };
-
-int main() {
-    // Create memory segments externally
-    MemSegment seg1("CODE");
-    MemSegment seg2("DATA");
-    
-    try {
-        // Setup segments - can only append at the end
-        seg1[0] = 0x12345678;  // First element
-        seg1[1] = 0xAABBCCDD;  // Append at the end
-        seg1[2] = 0xFFEEDDCC;  // Append at the end
-        
-        // For byte-level access, we still need to use the .byte member
-        seg1[3].byte[0] = 0x11;  // LSB
-        seg1[3].byte[1] = 0x22;
-        seg1[3].byte[2] = 0x33;
-        seg1[3].byte[3] = 0x44;  // MSB
-        
-        // This would throw an exception: seg1[150] = 0x87654321;
-        // Instead, we can only append at the end
-        seg1[4] = 0x87654321;  // Append at the end
-        
-        seg2[0] = 0x99887766;
-        seg2[1] = 0x55443322;
-        
-        
-        // Print segment sizes
-        std::cout << "Segment sizes:\n";
-        std::cout << "CODE segment size: " << seg1.GetSize() << " words (allocated: " << seg1.GetCapacity() << " words)\n";
-        std::cout << "DATA segment size: " << seg2.GetSize() << " words (allocated: " << seg2.GetCapacity() << " words)\n";
-        
-        // Create memory store and add the segments
-        MemSegmentList store;
-        store.AddSegment(&seg1);
-        store.AddSegment(&seg2);
-        
-        // Access segments through the store
-        std::cout << "Accessing through store:\n";
-        MemSegment* codeSegment = store.FindSegment("CODE");
-        if (codeSegment) {
-            std::cout << "Found CODE segment: word[0] = 0x" << std::hex 
-                      << (*codeSegment)[0].word << std::dec << std::endl;
-        }
-        
-        // Print all segments in the store
-        std::cout << "\nAll segments in store:\n";
-        store.PrintAll();
-    }
-    catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-    
-    return 0;
-}
