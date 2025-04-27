@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <iomanip>
-#include <cstdint>  // uint32_t를 위한 헤더
+#include <cstdint>  // For uint32_t type
 
 // Union type definition
 union WordBytes {
@@ -13,64 +13,88 @@ union WordBytes {
     
     // Constructor with uint32_t
     WordBytes(std::uint32_t val) : word(val) {}
+    
+    // Assignment operator for uint32_t
+    WordBytes& operator=(std::uint32_t val) {
+        word = val;
+        return *this;
+    }
 };
 
-// 하나의 메모리 세그먼트를 나타내는 클래스
+// Class representing a single memory segment
 class MemSegment {
 private:
-    std::vector<WordBytes> data;
-    std::string name;  // 세그먼트 이름 (선택적)
+    std::vector<WordBytes> data_;
+    std::string name_;  // Segment name (optional)
+    static const size_t GROWTH_CHUNK = 100;  // Number of elements to add when expanding
+    size_t length_;  // Number of valid elements (renamed from highestUsedIndex)
 
 public:
-    // 기본 생성자
-    MemSegment() : name("unnamed") {}
+    // Default constructor
+    MemSegment() : name_("unnamed"), length_(0) {}
     
-    // 이름으로 초기화하는 생성자
-    MemSegment(const std::string& segName) : name(segName) {}
+    // Constructor with segment name
+    MemSegment(const std::string& seg_name) : name_(seg_name), length_(0) {}
     
-    // [] 연산자 오버로딩 - 인덱스로 접근
+    // [] operator overloading - access by index
     WordBytes& operator[](size_t index) {
-        // 존재하지 않는 인덱스에 접근하려고 하면 자동 확장
-        if (index >= data.size()) {
-            data.resize(index + 1);
+        // Only allow access to valid indices or the next position
+        if (index > length_) {
+            throw std::out_of_range("Index out of range. You can only access existing elements or append at the end.");
         }
-        return data[index];
+        
+        // Auto-expand if accessing the next position
+        if (index == length_) {
+            // Check if we need to expand the underlying vector
+            if (length_ >= data_.size()) {
+                // Calculate new size with growth chunk
+                size_t new_size = ((length_ / GROWTH_CHUNK) + 1) * GROWTH_CHUNK;
+                data_.resize(new_size);
+            }
+            // Increment length since we're adding a new element
+            length_++;
+        }
+        
+        return data_[index];
     }
     
-    // const [] 연산자 오버로딩
+    // const [] operator overloading - only allow access to valid indices
     const WordBytes& operator[](size_t index) const {
-        return data[index];
+        if (index >= length_) {
+            throw std::out_of_range("Index out of range");
+        }
+        return data_[index];
     }
     
-    // 세그먼트 크기 반환
-    size_t size() const {
-        return data.size();
+    // Return the number of valid elements
+    size_t GetSize() const {
+        return length_;
     }
     
-    // 세그먼트 크기 설정
-    void resize(size_t size) {
-        data.resize(size);
+    // Return allocated size
+    size_t GetCapacity() const {
+        return data_.size();
     }
     
-    // 세그먼트 이름 반환
-    const std::string& getName() const {
-        return name;
+    // Get segment name
+    const std::string& GetName() const {
+        return name_;
     }
     
-    // 세그먼트 이름 설정
-    void setName(const std::string& segName) {
-        name = segName;
+    // Set segment name
+    void SetName(const std::string& segName) {
+        name_ = segName;
     }
     
-    // 세그먼트 내용 출력
-    void print() const {
-        std::cout << "Segment '" << name << "' (size: " << data.size() << " words):\n";
-        for (size_t i = 0; i < data.size(); ++i) {
-            const WordBytes& wb = data[i];
+    // Print segment contents
+    void Print() const {
+        std::cout << "Segment '" << name_ << "' (size: " << length_ << " words, allocated: " << GetCapacity() << " words):\n";
+        for (size_t i = 0; i < length_; ++i) {
+            const WordBytes& wb = data_[i];
             std::cout << "  [" << std::setw(4) << i << "] word = 0x" 
                       << std::hex << std::setfill('0') << std::setw(8) << wb.word << " | bytes = ";
             
-            // 각 바이트를 16진수로 출력 (MSB부터)
+            // Print each byte in hex (from MSB)
             for (int k = 3; k >= 0; --k) {
                 std::cout << "0x" << std::hex << std::setfill('0') << std::setw(2) 
                           << (static_cast<unsigned int>(wb.byte[k]) & 0xFF) << " ";
@@ -80,98 +104,135 @@ public:
     }
 };
 
-// 여러 메모리 세그먼트를 관리하는 클래스
-class MemSegmentManager {
+// Class for storing and referencing multiple memory segments (renamed to MemoryStore)
+class MemSegmentList {
 private:
-    std::vector<MemSegment> segments;
+    std::vector<MemSegment*> segments_;  // Store pointers to segments (not owning them)
 
 public:
-    // 기본 생성자
-    MemSegmentManager() {}
+    // Default constructor
+    MemSegmentList() {}
     
-    // 새 세그먼트 추가
-    MemSegment& addSegment(const std::string& name = "unnamed") {
-        segments.emplace_back(name);
-        return segments.back();
-    }
+    // Destructor - doesn't delete segments as they are externally managed
+    ~MemSegmentList() {}
     
-    // [] 연산자 오버로딩 - 세그먼트 인덱스로 접근
-    MemSegment& operator[](size_t index) {
-        // 존재하지 않는 인덱스에 접근하려고 하면 자동 확장
-        if (index >= segments.size()) {
-            segments.resize(index + 1);
+    // Add an existing segment to the store
+    void AddSegment(MemSegment* segment) {
+        if (segment) {
+            segments_.push_back(segment);
         }
-        return segments[index];
     }
     
-    // const [] 연산자 오버로딩
-    const MemSegment& operator[](size_t index) const {
-        return segments[index];
-    }
-    
-    // 이름으로 세그먼트 찾기
-    MemSegment* findSegment(const std::string& name) {
-        for (auto& seg : segments) {
-            if (seg.getName() == name) {
-                return &seg;
+    // Remove a segment from the store (doesn't delete it)
+    bool RemoveSegment(MemSegment* segment) {
+        for (auto it = segments_.begin(); it != segments_.end(); ++it) {
+            if (*it == segment) {
+                segments_.erase(it);
+                return true;
             }
         }
-        return nullptr;  // 찾지 못한 경우
+        return false;
     }
     
-    // 세그먼트 수 반환
-    size_t size() const {
-        return segments.size();
-    }
-    
-    // 모든 세그먼트 내용 출력
-    void printAll() const {
-        std::cout << "Memory Segment Manager - Total segments: " << segments.size() << std::endl;
-        for (size_t i = 0; i < segments.size(); ++i) {
-            std::cout << "\nSegment #" << i << ": ";
-            segments[i].print();
+    // [] operator overloading - access by segment index
+    MemSegment* operator[](size_t index) {
+        if (index < segments_.size()) {
+            return segments_[index];
         }
+        return nullptr;
+    }
+    
+    // const [] operator overloading
+    const MemSegment* operator[](size_t index) const {
+        if (index < segments_.size()) {
+            return segments_[index];
+        }
+        return nullptr;
+    }
+    
+    // Find segment by name
+    MemSegment* FindSegment(const std::string& name) {
+        for (auto seg : segments_) {
+            if (seg && seg->GetName() == name) {
+                return seg;
+            }
+        }
+        return nullptr;  // Not found
+    }
+    
+    // Return number of segments
+    size_t GetSize() const {
+        return segments_.size();
+    }
+    
+    // Print all segments
+    void PrintAll() const {
+        std::cout << "Memory Store - Total segments: " << segments_.size() << std::endl;
+        for (size_t i = 0; i < segments_.size(); ++i) {
+            std::cout << "\nSegment #" << i << ": ";
+            if (segments_[i]) {
+                segments_[i]->Print();
+            } else {
+                std::cout << "<null segment>\n";
+            }
+        }
+    }
+    
+    // Clear the store (doesn't delete segments)
+    void Clear() {
+        segments_.clear();
     }
 };
 
 int main() {
-    // 메모리 세그먼트 매니저 생성
-    MemSegmentManager manager;
+    // Create memory segments externally
+    MemSegment seg1("CODE");
+    MemSegment seg2("DATA");
     
-    // 세그먼트 추가
-    MemSegment& seg1 = manager.addSegment("CODE");
-    seg1.resize(4);  // 4개 워드 크기로 설정
-    
-    // 세그먼트 데이터 설정
-    seg1[0].word = 0x12345678;
-    seg1[1].word = 0xAABBCCDD;
-    seg1[2].word = 0xFFEEDDCC;
-    
-    // 바이트 단위로 접근
-    seg1[3].byte[0] = 0x11;  // LSB
-    seg1[3].byte[1] = 0x22;
-    seg1[3].byte[2] = 0x33;
-    seg1[3].byte[3] = 0x44;  // MSB
-    
-    // 다른 세그먼트 추가
-    MemSegment& seg2 = manager.addSegment("DATA");
-    seg2.resize(2);
-    seg2[0].word = 0x99887766;
-    seg2[1].word = 0x55443322;
-    
-    // 인덱스로 세그먼트에 직접 접근
-    manager[2].setName("BSS");
-    manager[2].resize(1);
-    manager[2][0].word = 0xABCDEF01;
-    
-    // 모든 세그먼트 출력
-    manager.printAll();
-    
-    // 이름으로 세그먼트 찾기
-    std::cout << "\nFinding segment by name 'DATA':\n";
-    MemSegment* dataSegment = manager.findSegment("DATA");
-    if (dataSegment) {
-        dataSegment->print();
+    try {
+        // Setup segments - can only append at the end
+        seg1[0] = 0x12345678;  // First element
+        seg1[1] = 0xAABBCCDD;  // Append at the end
+        seg1[2] = 0xFFEEDDCC;  // Append at the end
+        
+        // For byte-level access, we still need to use the .byte member
+        seg1[3].byte[0] = 0x11;  // LSB
+        seg1[3].byte[1] = 0x22;
+        seg1[3].byte[2] = 0x33;
+        seg1[3].byte[3] = 0x44;  // MSB
+        
+        // This would throw an exception: seg1[150] = 0x87654321;
+        // Instead, we can only append at the end
+        seg1[4] = 0x87654321;  // Append at the end
+        
+        seg2[0] = 0x99887766;
+        seg2[1] = 0x55443322;
+        
+        
+        // Print segment sizes
+        std::cout << "Segment sizes:\n";
+        std::cout << "CODE segment size: " << seg1.GetSize() << " words (allocated: " << seg1.GetCapacity() << " words)\n";
+        std::cout << "DATA segment size: " << seg2.GetSize() << " words (allocated: " << seg2.GetCapacity() << " words)\n";
+        
+        // Create memory store and add the segments
+        MemSegmentList store;
+        store.AddSegment(&seg1);
+        store.AddSegment(&seg2);
+        
+        // Access segments through the store
+        std::cout << "Accessing through store:\n";
+        MemSegment* codeSegment = store.FindSegment("CODE");
+        if (codeSegment) {
+            std::cout << "Found CODE segment: word[0] = 0x" << std::hex 
+                      << (*codeSegment)[0].word << std::dec << std::endl;
+        }
+        
+        // Print all segments in the store
+        std::cout << "\nAll segments in store:\n";
+        store.PrintAll();
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
     }
     
     return 0;
