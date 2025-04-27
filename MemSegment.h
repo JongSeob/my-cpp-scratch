@@ -25,6 +25,8 @@ private:
     static const size_t GROWTH_CHUNK = 100;
     size_t length_;
 
+    uint32_t segment_idx_ = 0;
+    uint32_t byte_idx_ = 0;
 public:
     MemSegment();
     MemSegment(const std::string& seg_name);
@@ -38,13 +40,15 @@ public:
     void SetName(const std::string& segName);
     void Print() const;
     bool SaveTo(const std::string& filename) const;
+
+    void SetStartBytePosition(uint32_t segment_idx, uint32_t byte_idx);
+    uint8_t GetNextByte();
 };
 
 // Class for storing and referencing multiple memory segments
 class MemSegmentList {
 private:
     std::vector<MemSegment*> segments_;
-
 public:
     MemSegmentList();
     ~MemSegmentList();

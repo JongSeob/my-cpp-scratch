@@ -85,6 +85,40 @@ bool MemSegment::SaveTo(const std::string& filename) const {
     return true;
 }
 
+void MemSegment::SetStartBytePosition(uint32_t segment_idx, uint32_t byte_idx) {
+    if (segment_idx >= data_.size()) {
+        throw std::out_of_range("Segment index out of range");
+    }
+    if (byte_idx > 3) {
+        throw std::out_of_range("Byte index must be between 0 and 3");
+    }
+    segment_idx_ = segment_idx;
+    byte_idx_ = byte_idx;
+}
+
+uint8_t MemSegment::GetNextByte() {
+    if (segment_idx_ >= data_.size()) {
+        throw std::out_of_range("No more data to read from");
+    }
+
+    if (byte_idx_ >= 4) {
+        throw std::logic_error("Byte index out of valid range (0-3)");
+    }
+
+    // Read one byte from the current segment
+    uint8_t next_byte = data_[segment_idx_].byte[byte_idx_];
+
+    // Increase the byte index for the next read
+    byte_idx_++;
+    if (byte_idx_ == 4) {
+        // if the byte index reaches 4, reset it and move to the next segment
+        byte_idx_ = 0;
+        segment_idx_++;
+    }
+
+    return next_byte;
+}
+
 // MemSegmentList implementation
 MemSegmentList::MemSegmentList() {}
 MemSegmentList::~MemSegmentList() {}
@@ -147,4 +181,3 @@ void MemSegmentList::PrintAll() const {
 void MemSegmentList::Clear() {
     segments_.clear();
 }
-
