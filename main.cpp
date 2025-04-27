@@ -62,37 +62,37 @@ public:
     }
 };
 
-int main() {
-    std::cout << "Hello, World!" << std::endl;
+// int main() {
+//     std::cout << "Hello, World!" << std::endl;
 
-    // Create a single instance of VectorWrapper
-    VectorWrapper<MyItem> vector(3); // Initialize with space for 3 MyItem objects
+//     // Create a single instance of VectorWrapper
+//     VectorWrapper<MyItem> vector(3); // Initialize with space for 3 MyItem objects
 
-    // Add data to the first MyItem
-    Data data1;
-    data1.word = 0x12345678; // Store a 32-bit integer
-    vector(0).push_back(data1);
+//     // Add data to the first MyItem
+//     Data data1;
+//     data1.word = 0x12345678; // Store a 32-bit integer
+//     vector(0).push_back(data1);
 
-    Data data2;
-    data2.word = 0xAABBCCDD; // Store a 32-bit integer
-    vector(0).push_back(data2);
+//     Data data2;
+//     data2.word = 0xAABBCCDD; // Store a 32-bit integer
+//     vector(0).push_back(data2);
 
-    // Add data to the second MyItem
-    Data data3;
-    data3.word = 0x87654321;
-    vector(1).push_back(data3);
+//     // Add data to the second MyItem
+//     Data data3;
+//     data3.word = 0x87654321;
+//     vector(1).push_back(data3);
 
-    // Add data to the third MyItem
-    Data data4;
-    data4.word = 0x11223344;
-    vector(2).push_back(data4);
+//     // Add data to the third MyItem
+//     Data data4;
+//     data4.word = 0x11223344;
+//     vector(2).push_back(data4);
 
-    // Access and print data from VectorWrapper
-    std::cout << "First MyItem, first Data (word): 0x" << std::hex << vector(0, 0).word << std::endl;
-    std::cout << "First MyItem, second Data (word): 0x" << std::hex << vector(0, 1).word << std::endl;
-    std::cout << "First MyItem, second Data (byte[3]): 0x" << std::hex << static_cast<unsigned int>(vector(0, 1).byte[3]) << std::endl;
-    std::cout << "Second MyItem, first Data (word): 0x" << std::hex << vector(1, 0).word << std::endl;
-    std::cout << "Third MyItem, first Data (byte[0]): 0x" << std::hex << static_cast<unsigned int>(vector(2, 0).byte[0]) << std::endl;
+//     // Access and print data from VectorWrapper
+//     std::cout << "First MyItem, first Data (word): 0x" << std::hex << vector(0, 0).word << std::endl;
+//     std::cout << "First MyItem, second Data (word): 0x" << std::hex << vector(0, 1).word << std::endl;
+//     std::cout << "First MyItem, second Data (byte[3]): 0x" << std::hex << static_cast<unsigned int>(vector(0, 1).byte[3]) << std::endl;
+//     std::cout << "Second MyItem, first Data (word): 0x" << std::hex << vector(1, 0).word << std::endl;
+//     std::cout << "Third MyItem, first Data (byte[0]): 0x" << std::hex << static_cast<unsigned int>(vector(2, 0).byte[0]) << std::endl;
 
-    return 0;
-}
+//     return 0;
+// }
